@@ -65,6 +65,7 @@ local terminals = {}
 --- @field hidden boolean? whether or not to include this terminal in the terminals list
 --- @field close_on_exit boolean? whether or not to close the terminal window when the process exits
 --- @field keep_after_exit boolean? whether or not to dispose the terminal window when the process exits
+--- @field start_in_insert boolean? open the terminal in insert mode
 --- @field auto_scroll boolean? whether or not to scroll down on terminal output
 --- @field float_opts table<string, any>?
 --- @field on_stdout fun(t: Terminal, job: number, data: string[]?, name: string?)?
@@ -89,6 +90,7 @@ local terminals = {}
 --- @field hidden boolean whether or not to include this terminal in the terminals list
 --- @field close_on_exit boolean whether or not to close the terminal window when the process exits
 --- @field keep_after_exit boolean whether or not to dispose the terminal window when the process exits
+--- @field start_in_insert boolean open the terminal in insert mode
 --- @field exited boolean flag to indicate that the process has exited
 --- @field auto_scroll boolean? whether or not to scroll down on terminal output
 --- @field float_opts table<string, any>?
@@ -188,7 +190,7 @@ local function setup_buffer_autocommands(term)
     })
   end
 
-  if config.start_in_insert then
+  if term.start_in_insert then
     -- Avoid entering insert mode when spawning terminal in the background
     if term.window == api.nvim_get_current_win() then vim.cmd("startinsert") end
   end
@@ -235,6 +237,7 @@ function Terminal:new(term)
   term.__state = { mode = "?" }
   term.close_on_exit = vim.F.if_nil(term.close_on_exit, conf.close_on_exit)
   term.keep_after_exit = vim.F.if_nil(term.keep_after_exit, conf.keep_after_exit)
+  term.start_in_insert = vim.F.if_nil(term.start_in_insert, conf.start_in_insert)
   term.exited = false
   -- Add the newly created terminal to the list of all terminals
   ---@diagnostic disable-next-line: return-type-mismatch
@@ -280,7 +283,7 @@ function Terminal:set_mode(m)
     vim.schedule(function() vim.cmd("startinsert") end)
   elseif m == mode.NORMAL then
     vim.schedule(function() vim.cmd("stopinsert") end)
-  elseif m == mode.UNSUPPORTED and config.get("start_in_insert") then
+  elseif m == mode.UNSUPPORTED and self.start_in_insert then
     vim.schedule(function() vim.cmd("startinsert") end)
   end
 end

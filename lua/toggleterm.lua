@@ -106,7 +106,7 @@ local function handle_term_enter()
     if closed then return end
     if config.persist_mode then
       term:__restore_mode()
-    elseif config.start_in_insert then
+    elseif term.start_in_insert then
       term:set_mode(terms.mode.INSERT)
     end
   end
