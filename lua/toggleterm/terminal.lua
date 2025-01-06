@@ -64,6 +64,7 @@ local terminals = {}
 --- @field display_name string?
 --- @field hidden boolean? whether or not to include this terminal in the terminals list
 --- @field close_on_exit boolean? whether or not to close the terminal window when the process exits
+--- @field keep_after_exit boolean? whether or not to dispose the terminal window when the process exits
 --- @field auto_scroll boolean? whether or not to scroll down on terminal output
 --- @field float_opts table<string, any>?
 --- @field on_stdout fun(t: Terminal, job: number, data: string[]?, name: string?)?
@@ -86,7 +87,9 @@ local terminals = {}
 --- @field name string the name of the terminal
 --- @field count number the count that triggers that specific terminal
 --- @field hidden boolean whether or not to include this terminal in the terminals list
---- @field close_on_exit boolean? whether or not to close the terminal window when the process exits
+--- @field close_on_exit boolean whether or not to close the terminal window when the process exits
+--- @field keep_after_exit boolean whether or not to dispose the terminal window when the process exits
+--- @field exited boolean flag to indicate that the process has exited
 --- @field auto_scroll boolean? whether or not to scroll down on terminal output
 --- @field float_opts table<string, any>?
 --- @field display_name string?
@@ -164,8 +167,19 @@ local function setup_buffer_autocommands(term)
   api.nvim_create_autocmd("TermClose", {
     buffer = term.bufnr,
     group = AUGROUP,
-    callback = function() delete(term.id) end,
+    callback = function()
+      term.exited = true
+      if not term.keep_after_exit then delete(term.id) end
+    end,
   })
+  api.nvim_create_autocmd("BufWipeout", {
+    buffer = term.bufnr,
+    group = AUGROUP,
+    callback = function()
+      if term.keep_after_exit and term.exited then delete(term.id) end
+    end,
+  })
+
   if term:is_float() then
     api.nvim_create_autocmd("VimResized", {
       buffer = term.bufnr,
@@ -219,7 +233,9 @@ function Terminal:new(term)
   term.on_stderr = vim.F.if_nil(term.on_stderr, conf.on_stderr)
   term.on_exit = vim.F.if_nil(term.on_exit, conf.on_exit)
   term.__state = { mode = "?" }
-  if term.close_on_exit == nil then term.close_on_exit = conf.close_on_exit end
+  term.close_on_exit = vim.F.if_nil(term.close_on_exit, conf.close_on_exit)
+  term.keep_after_exit = vim.F.if_nil(term.keep_after_exit, conf.keep_after_exit)
+  term.exited = false
   -- Add the newly created terminal to the list of all terminals
   ---@diagnostic disable-next-line: return-type-mismatch
   return setmetatable(term, self)
@@ -492,7 +508,7 @@ function Terminal:open(size, direction)
   if not self.bufnr or not api.nvim_buf_is_valid(self.bufnr) then
     local ok, err = pcall(opener, size, self)
     if not ok and err then return utils.notify(err, "error") end
-    self:spawn()
+    if not self.keep_after_exit or not self.exited then self:spawn() end
   else
     local ok, err = pcall(opener, size, self)
     if not ok and err then return utils.notify(err, "error") end
