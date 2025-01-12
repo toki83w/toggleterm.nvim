@@ -322,6 +322,15 @@ function M.toggle_all(force)
   end
 end
 
+-- Close all terminals
+function M.close_all()
+  local terminals = terms.get_all()
+
+  for _, term in pairs(terminals) do
+    term:close()
+  end
+end
+
 ---@param _ ToggleTermConfig
 local function setup_autocommands(_)
   api.nvim_create_augroup(AUGROUP, { clear = true })
@@ -427,6 +436,7 @@ local function setup_commands()
   )
 
   command("ToggleTermToggleAll", function(opts) M.toggle_all(opts.bang) end, { bang = true })
+  command("ToggleTermCloseAll", function(opts) M.close_all() end, {})
 
   command(
     "ToggleTermSendVisualLines",
