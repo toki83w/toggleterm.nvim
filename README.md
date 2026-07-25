@@ -60,6 +60,14 @@
 
 <!-- panvimdoc-ignore-end -->
 
+## Changes from upstream (akinsho/toggleterm.nvim)
+
+This fork includes the following additions not present in the original repository:
+
+- **`keep_after_exit` option** — When set to `true`, the terminal window remains open after the process exits instead of being disposed. This is useful for reviewing output after a command finishes. Defaults to `false`. Can be set globally in `setup()` or per custom terminal.
+- **Per-terminal `start_in_insert`** — The `start_in_insert` option can now be set on individual terminals when using `Terminal:new{}`, rather than being a global-only setting. This allows some terminals to open in normal mode while others open in insert mode.
+- **`:ToggleTermCloseAll` command** — Closes all open terminals at once (unlike `:ToggleTermToggleAll`, which toggles them).
+
 ## Requirements
 
 This plugin only works in _Neovim 0.7_ or newer.
